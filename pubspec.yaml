@@ -16,7 +16,7 @@ dependencies:
   # Nossos pacotes modernos. Como o SDK subiu, agora o lucide novo vai funcionar!
   supabase_flutter: ^2.5.0
   google_fonts: ^6.2.1
-  lucide_icons: ^1.0.3
+  lucide_icons: ^0.257.0
   timeago: ^3.1.0
 
 dev_dependencies:
