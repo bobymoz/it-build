@@ -18,45 +18,48 @@ const formPadding = EdgeInsets.symmetric(vertical: 20, horizontal: 16);
 const unexpectedErrorMessage = 'Unexpected error occured.';
 
 /// Basic theme to change the look and feel of the app
-final appTheme = ThemeData.light().copyWith(
-  primaryColorDark: Colors.orange,
+final appTheme = ThemeData.dark().copyWith(
+  scaffoldBackgroundColor: const Color(0xFF121212),
+  primaryColorDark: const Color(0xFF6200EA),
   appBarTheme: const AppBarTheme(
-    elevation: 1,
-    backgroundColor: Colors.white,
-    iconTheme: IconThemeData(color: Colors.black),
+    elevation: 0,
+    backgroundColor: Color(0xFF1E1E1E),
+    iconTheme: IconThemeData(color: Colors.white),
     titleTextStyle: TextStyle(
-      color: Colors.black,
-      fontSize: 18,
+      color: Colors.white,
+      fontSize: 20,
+      fontWeight: FontWeight.bold,
     ),
   ),
-  primaryColor: Colors.orange,
+  primaryColor: const Color(0xFF6200EA),
   textButtonTheme: TextButtonThemeData(
     style: TextButton.styleFrom(
-      foregroundColor: Colors.orange,
+      foregroundColor: const Color(0xFF03DAC6),
     ),
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
       foregroundColor: Colors.white,
-      backgroundColor: Colors.orange,
+      backgroundColor: const Color(0xFF6200EA),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
     ),
   ),
   inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: const Color(0xFF1E1E1E),
     floatingLabelStyle: const TextStyle(
-      color: Colors.orange,
+      color: Color(0xFF03DAC6),
     ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(
-        color: Colors.grey,
-        width: 2,
-      ),
+      borderSide: BorderSide.none,
     ),
-    focusColor: Colors.orange,
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(
-        color: Colors.orange,
+        color: Color(0xFF6200EA),
         width: 2,
       ),
     ),
