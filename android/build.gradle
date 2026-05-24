@@ -1,5 +1,4 @@
 buildscript {
-    // Declaramos a versão aqui para que os plugins do Flutter consigam ler
     ext.kotlin_version = '1.8.22'
     repositories {
         google()
@@ -11,6 +10,14 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+
+    // A MÁGICA AQUI: Força todos os pacotes do Flutter a compilar com Kotlin 1.8
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "1.8"
+            languageVersion = "1.8"
+        }
     }
 }
 
