@@ -1,3 +1,12 @@
+buildscript {
+    // Declaramos a versão aqui para que os plugins do Flutter consigam ler
+    ext.kotlin_version = '1.8.22'
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 allprojects {
     repositories {
         google()
