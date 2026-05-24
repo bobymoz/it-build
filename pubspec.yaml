@@ -15,7 +15,7 @@ dependencies:
   # Estes pacotes devem ficar alinhados exatamente na mesma direção da palavra "flutter" acima
   supabase_flutter: ^2.5.0
   google_fonts: ^6.2.1
-  lucide_icons: ^1.0.3
+  lucide_icons: ^0.257.0
   
 dev_dependencies:
   flutter_test:
