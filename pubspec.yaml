@@ -5,7 +5,6 @@ publish_to: 'none'
 
 version: 1.0.0+1
 
-# Atualizado para a era moderna do Flutter (resolve o erro super.key)
 environment:
   sdk: '>=3.2.0 <4.0.0'
 
@@ -13,10 +12,9 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Nossos pacotes modernos. Como o SDK subiu, agora o lucide novo vai funcionar!
   supabase_flutter: ^2.5.0
   google_fonts: ^6.2.1
-  lucide_icons: ^0.257.0
+  lucide_icons: ^1.0.3
   timeago: ^3.1.0
 
 dev_dependencies:
