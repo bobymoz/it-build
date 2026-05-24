@@ -14,7 +14,8 @@ dependencies:
 
   supabase_flutter: ^2.5.0
   google_fonts: ^6.2.1
-  lucide_icons: ^0.257.0 # Versão corrigida!
+  # Pacote novo, mantido pela comunidade e livre do erro!
+  lucide_icons_flutter: ^3.1.14
   timeago: ^3.1.0
 
 dev_dependencies:
