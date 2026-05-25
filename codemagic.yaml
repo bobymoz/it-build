@@ -7,7 +7,9 @@ workflows:
     scripts:
       - name: Baixar dependências
         script: flutter pub get
-      - name: Compilar o APK (Ignorando Tree Shake)
-        script: flutter build apk --release --no-tree-shake-icons
+      - name: Gerar Ícone do App
+        script: dart run flutter_launcher_icons # Aplica o teu logo no Android!
+      - name: Compilar o APK
+        script: flutter build apk --release
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
