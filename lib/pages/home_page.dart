@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:my_chat_app/utils/skeleton.dart';
-import 'package:my_chat_app/main.dart'; 
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,19 +12,76 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late Future<List<Map<String, dynamic>>> _categoriesFuture;
+  Map<String, dynamic>? _currentUserProfile;
 
   @override
   void initState() {
     super.initState();
-    _categoriesFuture = _fetchCategories();
+    _loadData();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchCategories() async {
-    return await Supabase.instance.client.from('categories').select().order('created_at', ascending: true);
+  void _loadData() {
+    _categoriesFuture = Supabase.instance.client.from('categories').select().order('created_at', ascending: true);
+    _fetchUserProfile();
   }
 
-  // SOLUÇÃO ESTRUTURAL: Em vez de retornar um dado solto, retornamos o WIDGET inteiro.
-  // Dessa forma o compilador entende exatamente quais ícones nativos não podem ser apagados.
+  Future<void> _fetchUserProfile() async {
+    final userId = Supabase.instance.client.auth.currentUser!.id;
+    final data = await Supabase.instance.client.from('profiles').select().eq('id', userId).single();
+    if (mounted) setState(() => _currentUserProfile = data);
+  }
+
+  // Função que permite aos utilizadores criar um tópico rapidamente
+  Future<void> _createTopicFlow() async {
+    final titleCtrl = TextEditingController();
+    // Pega as categorias para o utilizador escolher onde postar
+    final categories = await Supabase.instance.client.from('categories').select();
+    String? selectedCategoryId = categories.first['id'];
+
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF23232F),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Criar Novo Tópico', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            TextField(controller: titleCtrl, decoration: const InputDecoration(hintText: 'Título do tópico...')),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: selectedCategoryId,
+              dropdownColor: const Color(0xFF181820),
+              decoration: const InputDecoration(hintText: 'Escolhe a Categoria'),
+              items: categories.map<DropdownMenuItem<String>>((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['title']))).toList(),
+              onChanged: (val) => selectedCategoryId = val,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleCtrl.text.isEmpty) return;
+                await Supabase.instance.client.from('topics').insert({
+                  'category_id': selectedCategoryId,
+                  'profile_id': Supabase.instance.client.auth.currentUser!.id,
+                  'title': titleCtrl.text.trim(),
+                });
+                if (mounted) Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tópico criado!')));
+              },
+              child: const Text('Publicar Tópico'),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCategoryIcon(int? code, Color color) {
     switch (code) {
       case 58364: return Icon(Icons.forum, size: 28, color: color);
@@ -39,39 +95,99 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Fórum Jovem'),
+        // Canto Esquerdo: O teu Avatar!
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: GestureDetector(
+            onTap: () {
+              // Aqui vamos chamar a futura página de perfil
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aba Perfil em breve!')));
+            },
+            child: _currentUserProfile == null
+                ? const CircularProgressIndicator()
+                : CircleAvatar(
+                    backgroundColor: Color(int.parse(_currentUserProfile!['avatar_color'])).withOpacity(0.3),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Image.asset('assets/${_currentUserProfile!['avatar_icon']}.png', fit: BoxFit.contain),
+                    ),
+                  ),
+          ),
+        ),
+        // Centro: Ícone de Chat
+        title: IconButton(
+          icon: const Icon(Icons.chat_bubble_rounded, size: 30),
+          color: Theme.of(context).primaryColor,
+          onPressed: () {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aba Chat em breve!')));
+          },
+        ),
+        // Canto Direito: Pesquisa
         actions: [
-          IconButton(
-            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
-            onPressed: () => MyApp.of(context).toggleTheme(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
-          ),
+          IconButton(icon: const Icon(Icons.search, size: 30), onPressed: () {}),
+          const SizedBox(width: 8),
         ],
       ),
+      
+      // Botão Flutuante (FAB) para Criar Tópicos
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Novo Tópico', style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: _createTopicFlow,
+      ),
+
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _categoriesFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildSkeletonList();
-          }
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Nenhuma categoria encontrada.'));
-          }
+          if (snapshot.connectionState == ConnectionState.waiting) return _buildSkeletonList();
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('Nenhuma categoria.'));
 
           final categories = snapshot.data!;
           return ListView.builder(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(16),
             itemCount: categories.length,
             itemBuilder: (context, index) {
               final cat = categories[index];
-              return _buildCategoryCard(cat, isDark);
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                color: const Color(0xFF23232F),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(15),
+                  onTap: () {
+                    // No próximo passo vamos colocar o Navigator.push para a página do Tópico!
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ler tópicos em breve!')));
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.15), shape: BoxShape.circle),
+                          child: _buildCategoryIcon(cat['icon_code'], Theme.of(context).primaryColor),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(cat['title'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                              const SizedBox(height: 4),
+                              Text(cat['description'] ?? '', style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: Colors.white38),
+                      ],
+                    ),
+                  ),
+                ),
+              );
             },
           );
         },
@@ -81,77 +197,23 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildSkeletonList() {
     return ListView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(16),
       itemCount: 5,
-      itemBuilder: (context, index) {
-        return Card(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const Skeleton(width: 45, height: 45, borderRadius: 25),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Skeleton(width: 150, height: 16),
-                      SizedBox(height: 8),
-                      Skeleton(width: double.infinity, height: 12),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCategoryCard(Map<String, dynamic> cat, bool isDark) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () {
-          // Aqui vai a navegação para os tópicos
-        },
+      itemBuilder: (context, index) => Card(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        color: const Color(0xFF23232F),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                // Chamamos a função que constrói o Widget inteiro
-                child: _buildCategoryIcon(cat['icon_code'], Theme.of(context).primaryColor),
-              ),
+              const Skeleton(width: 50, height: 50, borderRadius: 25),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      cat['title'] ?? 'Sem Título',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      cat['description'] ?? '',
-                      style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 13),
-                    ),
-                  ],
+                  children: const [Skeleton(width: 150, height: 16), SizedBox(height: 8), Skeleton(width: double.infinity, height: 12)],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
             ],
           ),
         ),
