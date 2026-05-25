@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:my_chat_app/utils/skeleton.dart';
+import 'package:my_chat_app/pages/create_topic_page.dart'; // Nova página separada
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,73 +14,26 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late Future<List<Map<String, dynamic>>> _categoriesFuture;
   Map<String, dynamic>? _currentUserProfile;
+  bool _isLoadingProfile = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
-  }
-
-  void _loadData() {
     _categoriesFuture = Supabase.instance.client.from('categories').select().order('created_at', ascending: true);
     _fetchUserProfile();
   }
 
   Future<void> _fetchUserProfile() async {
-    final userId = Supabase.instance.client.auth.currentUser!.id;
-    final data = await Supabase.instance.client.from('profiles').select().eq('id', userId).single();
-    if (mounted) setState(() => _currentUserProfile = data);
-  }
-
-  // Função que permite aos utilizadores criar um tópico rapidamente
-  Future<void> _createTopicFlow() async {
-    final titleCtrl = TextEditingController();
-    // Pega as categorias para o utilizador escolher onde postar
-    final categories = await Supabase.instance.client.from('categories').select();
-    String? selectedCategoryId = categories.first['id'];
-
-    if (!mounted) return;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF23232F),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('Criar Novo Tópico', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            TextField(controller: titleCtrl, decoration: const InputDecoration(hintText: 'Título do tópico...')),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: selectedCategoryId,
-              dropdownColor: const Color(0xFF181820),
-              decoration: const InputDecoration(hintText: 'Escolhe a Categoria'),
-              items: categories.map<DropdownMenuItem<String>>((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['title']))).toList(),
-              onChanged: (val) => selectedCategoryId = val,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleCtrl.text.isEmpty) return;
-                await Supabase.instance.client.from('topics').insert({
-                  'category_id': selectedCategoryId,
-                  'profile_id': Supabase.instance.client.auth.currentUser!.id,
-                  'title': titleCtrl.text.trim(),
-                });
-                if (mounted) Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tópico criado!')));
-              },
-              child: const Text('Publicar Tópico'),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
+    try {
+      final userId = Supabase.instance.client.auth.currentUser!.id;
+      final data = await Supabase.instance.client.from('profiles').select().eq('id', userId).single();
+      if (mounted) setState(() => _currentUserProfile = data);
+    } catch (e) {
+      // Se falhar, carrega um perfil seguro para não ficar infinito
+      if (mounted) setState(() => _currentUserProfile = {'avatar_icon': 1, 'avatar_color': '0xFFB388FF'});
+    } finally {
+      if (mounted) setState(() => _isLoadingProfile = false);
+    }
   }
 
   Widget _buildCategoryIcon(int? code, Color color) {
@@ -97,15 +51,13 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leadingWidth: 70,
         // Canto Esquerdo: O teu Avatar!
         leading: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
           child: GestureDetector(
-            onTap: () {
-              // Aqui vamos chamar a futura página de perfil
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aba Perfil em breve!')));
-            },
-            child: _currentUserProfile == null
+            onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil em breve!'))),
+            child: _isLoadingProfile
                 ? const CircularProgressIndicator()
                 : CircleAvatar(
                     backgroundColor: Color(int.parse(_currentUserProfile!['avatar_color'])).withOpacity(0.3),
@@ -116,28 +68,30 @@ class _HomePageState extends State<HomePage> {
                   ),
           ),
         ),
-        // Centro: Ícone de Chat
-        title: IconButton(
-          icon: const Icon(Icons.chat_bubble_rounded, size: 30),
-          color: Theme.of(context).primaryColor,
-          onPressed: () {
-             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aba Chat em breve!')));
-          },
-        ),
-        // Canto Direito: Pesquisa
+        title: const Text('Redoot', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(icon: const Icon(Icons.search, size: 30), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.search, size: 28), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, size: 28), 
+            onPressed: () => Navigator.of(context).push(CreateTopicPage.route()), // Abre página dedicada
+          ),
           const SizedBox(width: 8),
         ],
       ),
       
-      // Botão Flutuante (FAB) para Criar Tópicos
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Novo Tópico', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: _createTopicFlow,
+      // Ícone de Chat em Baixo e no Meio com o teu PNG
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF23232F),
+        elevation: 0,
+        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chat em breve!'))),
+        child: Image.asset('assets/chat.png', width: 30, height: 30),
+      ),
+      bottomNavigationBar: const BottomAppBar(
+        color: Color(0xFF181820),
+        shape: CircularNotchedRectangle(),
+        notchMargin: 8,
+        child: SizedBox(height: 50),
       ),
 
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -158,10 +112,7 @@ class _HomePageState extends State<HomePage> {
                 color: const Color(0xFF23232F),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(15),
-                  onTap: () {
-                    // No próximo passo vamos colocar o Navigator.push para a página do Tópico!
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ler tópicos em breve!')));
-                  },
+                  onTap: () {},
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -182,7 +133,6 @@ class _HomePageState extends State<HomePage> {
                             ],
                           ),
                         ),
-                        const Icon(Icons.chevron_right_rounded, color: Colors.white38),
                       ],
                     ),
                   ),
@@ -209,10 +159,7 @@ class _HomePageState extends State<HomePage> {
               const Skeleton(width: 50, height: 50, borderRadius: 25),
               const SizedBox(width: 16),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [Skeleton(width: 150, height: 16), SizedBox(height: 8), Skeleton(width: double.infinity, height: 12)],
-                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Skeleton(width: 150, height: 16), SizedBox(height: 8), Skeleton(width: double.infinity, height: 12)]),
               ),
             ],
           ),
