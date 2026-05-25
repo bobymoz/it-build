@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:my_chat_app/utils/skeleton.dart';
-import 'package:my_chat_app/pages/create_topic_page.dart'; // Nova página separada
+import 'package:my_chat_app/pages/create_community_page.dart';
+// Os ecrãs reais que vamos criar a seguir:
+import 'package:my_chat_app/pages/profile_page.dart';
+import 'package:my_chat_app/pages/chat_list_page.dart';
+import 'package:my_chat_app/pages/notifications_page.dart';
+import 'package:my_chat_app/pages/search_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,14 +17,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Future<List<Map<String, dynamic>>> _categoriesFuture;
+  late Future<List<Map<String, dynamic>>> _communitiesFuture;
   Map<String, dynamic>? _currentUserProfile;
   bool _isLoadingProfile = true;
 
   @override
   void initState() {
     super.initState();
-    _categoriesFuture = Supabase.instance.client.from('categories').select().order('created_at', ascending: true);
+    _communitiesFuture = Supabase.instance.client.from('communities').select().order('created_at', ascending: false);
     _fetchUserProfile();
   }
 
@@ -29,21 +34,9 @@ class _HomePageState extends State<HomePage> {
       final data = await Supabase.instance.client.from('profiles').select().eq('id', userId).single();
       if (mounted) setState(() => _currentUserProfile = data);
     } catch (e) {
-      // Se falhar, carrega um perfil seguro para não ficar infinito
       if (mounted) setState(() => _currentUserProfile = {'avatar_icon': 1, 'avatar_color': '0xFFB388FF'});
     } finally {
       if (mounted) setState(() => _isLoadingProfile = false);
-    }
-  }
-
-  Widget _buildCategoryIcon(int? code, Color color) {
-    switch (code) {
-      case 58364: return Icon(Icons.forum, size: 28, color: color);
-      case 57895: return Icon(Icons.attach_money, size: 28, color: color);
-      case 58050: return Icon(Icons.favorite, size: 28, color: color);
-      case 58074: return Icon(Icons.headset, size: 28, color: color);
-      case 58106: return Icon(Icons.gavel, size: 28, color: color);
-      default: return Icon(Icons.folder, size: 28, color: color);
     }
   }
 
@@ -52,11 +45,15 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         leadingWidth: 70,
-        // Canto Esquerdo: O teu Avatar!
         leading: Padding(
           padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
           child: GestureDetector(
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil em breve!'))),
+            onTap: () {
+              // Clica no avatar -> Abre o próprio perfil
+              if (_currentUserProfile != null) {
+                Navigator.of(context).push(ProfilePage.route(Supabase.instance.client.auth.currentUser!.id));
+              }
+            },
             child: _isLoadingProfile
                 ? const CircularProgressIndicator()
                 : CircleAvatar(
@@ -68,68 +65,83 @@ class _HomePageState extends State<HomePage> {
                   ),
           ),
         ),
-        title: const Text('Redoot', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Image.asset('assets/logo.png', height: 35),
         actions: [
-          IconButton(icon: const Icon(Icons.search, size: 28), onPressed: () {}),
           IconButton(
-            icon: const Icon(Icons.add_circle_outline, size: 28), 
-            onPressed: () => Navigator.of(context).push(CreateTopicPage.route()), // Abre página dedicada
+            icon: const Icon(Icons.search, size: 26), 
+            onPressed: () => Navigator.of(context).push(SearchPage.route())
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications_none, size: 26), 
+            onPressed: () => Navigator.of(context).push(NotificationsPage.route())
+          ),
+          IconButton(
+            icon: Image.asset('assets/chat.png', width: 24, height: 24, color: Colors.white), 
+            onPressed: () => Navigator.of(context).push(ChatListPage.route())
           ),
           const SizedBox(width: 8),
         ],
       ),
       
-      // Ícone de Chat em Baixo e no Meio com o teu PNG
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF23232F),
-        elevation: 0,
-        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chat em breve!'))),
-        child: Image.asset('assets/chat.png', width: 30, height: 30),
-      ),
-      bottomNavigationBar: const BottomAppBar(
-        color: Color(0xFF181820),
-        shape: CircularNotchedRectangle(),
-        notchMargin: 8,
-        child: SizedBox(height: 50),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Criar Comunidade', style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: () => Navigator.of(context).push(CreateCommunityPage.route()).then((_) {
+          // Atualiza o feed quando volta
+          setState(() {
+            _communitiesFuture = Supabase.instance.client.from('communities').select().order('created_at', ascending: false);
+          });
+        }),
       ),
 
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _categoriesFuture,
+        future: _communitiesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return _buildSkeletonList();
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('Nenhuma categoria.'));
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('Sê o primeiro a criar uma comunidade!'));
 
-          final categories = snapshot.data!;
+          final communities = snapshot.data!;
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: categories.length,
+            itemCount: communities.length,
             itemBuilder: (context, index) {
-              final cat = categories[index];
+              final com = communities[index];
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 color: const Color(0xFF23232F),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(15),
-                  onTap: () {},
+                  onTap: () {
+                    // Navega para dentro da comunidade
+                  },
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.15), shape: BoxShape.circle),
-                          child: _buildCategoryIcon(cat['icon_code'], Theme.of(context).primaryColor),
+                        // O logo do imgur com fallback de erro
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: com['logo_url'] != null && com['logo_url'].toString().isNotEmpty
+                              ? Image.network(
+                                  com['logo_url'], 
+                                  width: 50, height: 50, fit: BoxFit.cover,
+                                  errorBuilder: (c, e, s) => Container(width: 50, height: 50, color: Colors.grey[800], child: const Icon(Icons.group)),
+                                )
+                              : Container(width: 50, height: 50, color: Colors.grey[800], child: const Icon(Icons.group)),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(cat['title'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                              Text(com['name'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                               const SizedBox(height: 4),
-                              Text(cat['description'] ?? '', style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                              Text(com['description'] ?? '', style: const TextStyle(color: Colors.white54, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 8),
+                              Text('Categoria: ${com['category']}', style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
@@ -156,7 +168,7 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              const Skeleton(width: 50, height: 50, borderRadius: 25),
+              const Skeleton(width: 50, height: 50, borderRadius: 12),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Skeleton(width: 150, height: 16), SizedBox(height: 8), Skeleton(width: double.infinity, height: 12)]),
