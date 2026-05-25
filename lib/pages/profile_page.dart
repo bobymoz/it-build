@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:it-build/pages/private_chat_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final String userId;
@@ -76,15 +77,14 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: 40),
 
               // Botão de Mensagem (SÓ aparece se não for o teu próprio perfil)
-              if (!isMe)
+            if (!isMe)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.chat_bubble_outline),
                     label: const Text('Enviar Mensagem Privada', style: TextStyle(fontSize: 16)),
                     onPressed: () {
-                      // No próximo passo vamos ligar isto ao Chat Privado!
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chat Privado a caminho!')));
+                      Navigator.of(context).push(PrivateChatPage.route(_profileData!));
                     },
                   ),
                 ),
