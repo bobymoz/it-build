@@ -19,16 +19,11 @@ class _RegisterPageState extends State<RegisterPage> {
   final _confirmPassCtrl = TextEditingController();
   
   bool _isLoading = false;
-  int _selectedIcon = Icons.face.codePoint;
+  
+  // Agora usamos números de 1 a 23, que correspondem aos seus PNGs
+  int _selectedAvatarIndex = 1;
   Color _selectedColor = Colors.blue;
 
-  // Seguindo a sua exigência por ícones profissionais padrão Material Design
-  final List<IconData> _avatars = [
-    Icons.face, Icons.pets, Icons.rocket_launch, 
-    Icons.local_fire_department, Icons.sports_esports, Icons.music_note,
-    Icons.psychology, Icons.cruelty_free, Icons.directions_car
-  ];
-  
   final List<Color> _colors = [
     Colors.blue, Colors.red, Colors.green, 
     Colors.purple, Colors.orange, Colors.teal
@@ -56,7 +51,7 @@ class _RegisterPageState extends State<RegisterPage> {
         password: _passCtrl.text.trim(),
         data: {
           'username': _userCtrl.text.trim(),
-          'avatar_icon': _selectedIcon,
+          'avatar_icon': _selectedAvatarIndex, // Vai salvar o número da imagem (Ex: 1, 15, 23)
           'avatar_color': _selectedColor.value.toString(),
         }
       );
@@ -90,7 +85,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       body: PageView(
         controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(), // Impede deslizar com o dedo, obriga a usar o botão Avançar
+        physics: const NeverScrollableScrollPhysics(),
         children: [
           _buildStep(
             title: 'Qual o seu Email?',
@@ -148,27 +143,50 @@ class _RegisterPageState extends State<RegisterPage> {
         children: [
           const Text('Monte seu Avatar', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
           const SizedBox(height: 20),
+          
+          // Imagem principal gigante no topo
           CircleAvatar(
-            radius: 50,
-            backgroundColor: _selectedColor.withOpacity(0.2),
-            child: Icon(IconData(_selectedIcon, fontFamily: 'MaterialIcons'), size: 60, color: _selectedColor),
+            radius: 60,
+            backgroundColor: _selectedColor.withOpacity(0.5),
+            backgroundImage: AssetImage('assets/$_selectedAvatarIndex.png'),
           ),
           const SizedBox(height: 30),
-          const Text('Ícone:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Escolha um Avatar:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          
+          // Geração automática dos 23 avatares PNG em formato de grade
           Wrap(
-            spacing: 10,
-            children: _avatars.map((icon) {
-              final isSelected = _selectedIcon == icon.codePoint;
-              return ChoiceChip(
-                label: Icon(icon, color: isSelected ? Colors.white : Colors.grey),
-                selected: isSelected,
-                selectedColor: Theme.of(context).primaryColor,
-                onSelected: (_) => setState(() => _selectedIcon = icon.codePoint),
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.center,
+            children: List.generate(23, (index) {
+              final avatarId = index + 1; // Cria a sequência de 1 a 23
+              final isSelected = _selectedAvatarIndex == avatarId;
+              
+              return GestureDetector(
+                onTap: () => setState(() => _selectedAvatarIndex = avatarId),
+                child: Container(
+                  width: 55, 
+                  height: 55,
+                  decoration: BoxDecoration(
+                    color: _selectedColor.withOpacity(0.2), // Fundo suave acompanhando a cor
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? Theme.of(context).primaryColor : Colors.transparent, 
+                      width: 3
+                    ),
+                    image: DecorationImage(
+                      image: AssetImage('assets/$avatarId.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
               );
-            }).toList(),
+            }),
           ),
-          const SizedBox(height: 20),
-          const Text('Cor:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 30),
+          const Text('Cor de Fundo:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 10,
             children: _colors.map((color) {
