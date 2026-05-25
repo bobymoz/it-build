@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:my_chat_app/pages/chat_page.dart';
-import 'package:my_chat_app/pages/register_page.dart';
-import 'package:my_chat_app/utils/constants.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:my_chat_app/pages/home_page.dart';
+import 'package:my_chat_app/pages/login_page.dart';
 
-/// Page to redirect users to the appropriate page depending on the initial auth state
 class SplashPage extends StatefulWidget {
-  const SplashPage({Key? key}) : super(key: key);
+  const SplashPage({super.key});
 
   @override
-  SplashPageState createState() => SplashPageState();
+  State<SplashPage> createState() => _SplashPageState();
 }
 
-class SplashPageState extends State<SplashPage> {
+class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
@@ -19,21 +18,21 @@ class SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _redirect() async {
-    // await for for the widget to mount
-    await Future.delayed(Duration.zero);
-
-    final session = supabase.auth.currentSession;
-    if (session == null) {
-      Navigator.of(context)
-          .pushAndRemoveUntil(RegisterPage.route(), (route) => false);
-    } else {
-      Navigator.of(context)
-          .pushAndRemoveUntil(ChatPage.route(), (route) => false);
+    await Future.delayed(const Duration(milliseconds: 500));
+    final session = Supabase.instance.client.auth.currentSession;
+    if (mounted) {
+      if (session != null) {
+        Navigator.of(context).pushReplacement(HomePage.route());
+      } else {
+        Navigator.of(context).pushReplacement(LoginPage.route());
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: preloader);
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
   }
 }
