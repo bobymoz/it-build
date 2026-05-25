@@ -2,7 +2,6 @@ name: my_chat_app
 description: Fórum Jovem App usando Supabase e Flutter
 
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
@@ -11,7 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
   supabase_flutter: ^2.5.0
   google_fonts: ^6.2.1
   lucide_icons_flutter: ^3.1.14
@@ -21,10 +19,16 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1 # Novo pacote para o ícone do APK
 
 flutter:
   uses-material-design: true
-  
-  # AQUI DECLARAMOS A SUA PASTA DE IMAGENS:
   assets:
     - assets/
+
+# Configuração para gerar o ícone do APK
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.png"
+  min_sdk_android: 21
