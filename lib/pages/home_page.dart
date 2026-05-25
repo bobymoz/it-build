@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:my_chat_app/utils/skeleton.dart';
-import 'package:my_chat_app/main.dart'; // Para acessar o MyApp.of(context).toggleTheme()
+import 'package:my_chat_app/main.dart'; 
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,8 +21,20 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<List<Map<String, dynamic>>> _fetchCategories() async {
-    // Busca as categorias diretamente do Supabase sem simulações
     return await Supabase.instance.client.from('categories').select().order('created_at', ascending: true);
+  }
+
+  // SOLUÇÃO ESTRUTURAL: Em vez de retornar um dado solto, retornamos o WIDGET inteiro.
+  // Dessa forma o compilador entende exatamente quais ícones nativos não podem ser apagados.
+  Widget _buildCategoryIcon(int? code, Color color) {
+    switch (code) {
+      case 58364: return Icon(Icons.forum, size: 28, color: color);
+      case 57895: return Icon(Icons.attach_money, size: 28, color: color);
+      case 58050: return Icon(Icons.favorite, size: 28, color: color);
+      case 58074: return Icon(Icons.headset, size: 28, color: color);
+      case 58106: return Icon(Icons.gavel, size: 28, color: color);
+      default: return Icon(Icons.folder, size: 28, color: color);
+    }
   }
 
   @override
@@ -33,23 +45,19 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('Fórum Jovem'),
         actions: [
-          // Botão nativo para ativar/desativar modo escuro com um clique
           IconButton(
             icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
             onPressed: () => MyApp.of(context).toggleTheme(),
           ),
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () {
-              // Tela de pesquisa de usuários será aqui
-            },
+            onPressed: () {},
           ),
         ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _categoriesFuture,
         builder: (context, snapshot) {
-          // O processamento no app usa o Skeleton que criamos enquanto baixa do servidor
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildSkeletonList();
           }
@@ -103,7 +111,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCategoryCard(Map<String, dynamic> cat, bool isDark) {
-    // Design inspirado no FileForums, mas com cards modernos e cores contidas
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       elevation: 2,
@@ -112,7 +119,7 @@ class _HomePageState extends State<HomePage> {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () {
-          // Ao clicar, o usuário será levado para a tela de Tópicos desta categoria
+          // Aqui vai a navegação para os tópicos
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -124,11 +131,8 @@ class _HomePageState extends State<HomePage> {
                   color: Theme.of(context).primaryColor.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  IconData(cat['icon_code'] ?? Icons.folder.codePoint, fontFamily: 'MaterialIcons'),
-                  size: 28,
-                  color: Theme.of(context).primaryColor,
-                ),
+                // Chamamos a função que constrói o Widget inteiro
+                child: _buildCategoryIcon(cat['icon_code'], Theme.of(context).primaryColor),
               ),
               const SizedBox(width: 16),
               Expanded(
