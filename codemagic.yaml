@@ -5,11 +5,9 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Baixar dependências do Flutter
-        script: |
-          flutter pub get
-      - name: Compilar o APK
-        script: |
-          flutter build apk --release --no-tree-shake-icons
+      - name: Baixar dependências
+        script: flutter pub get
+      - name: Compilar o APK (Ignorando Tree Shake)
+        script: flutter build apk --release --no-tree-shake-icons
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
