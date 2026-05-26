@@ -14,12 +14,14 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _profileData;
   bool _isLoading = true;
+  bool _isBlocked = false;
   final String _currentUserId = Supabase.instance.client.auth.currentUser!.id;
 
   @override
   void initState() {
     super.initState();
     _fetchProfile();
+    _checkBlock();
   }
 
   Future<void> _fetchProfile() async {
@@ -33,7 +35,23 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // PAINEL DE EDIÇÃO DE PERFIL COM AVATARES (SÓ PARA O DONO)
+  Future<void> _checkBlock() async {
+    final res = await Supabase.instance.client.from('blocked_users').select().eq('blocker_id', _currentUserId).eq('blocked_id', widget.userId);
+    if (res.isNotEmpty && mounted) setState(() => _isBlocked = true);
+  }
+
+  Future<void> _toggleBlock() async {
+    if (_isBlocked) {
+      await Supabase.instance.client.from('blocked_users').delete().eq('blocker_id', _currentUserId).eq('blocked_id', widget.userId);
+      setState(() => _isBlocked = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Utilizador desbloqueado.')));
+    } else {
+      await Supabase.instance.client.from('blocked_users').insert({'blocker_id': _currentUserId, 'blocked_id': widget.userId});
+      setState(() => _isBlocked = true);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Utilizador bloqueado.')));
+    }
+  }
+
   void _showEditProfileSheet() {
     final descCtrl = TextEditingController(text: _profileData!['description']);
     int tempAvatar = _profileData!['avatar_icon'] ?? 1;
@@ -52,8 +70,6 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 const Text('Editar Perfil', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-                
-                // Escolher novo Avatar (1-23)
                 const Text('Escolher Novo Avatar:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 SizedBox(
@@ -66,31 +82,20 @@ class _ProfilePageState extends State<ProfilePage> {
                       return GestureDetector(
                         onTap: () => setSheetState(() => tempAvatar = avatarId),
                         child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: tempAvatar == avatarId ? Theme.of(context).primaryColor : Colors.transparent, width: 3),
-                          ),
+                          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: tempAvatar == avatarId ? Theme.of(context).primaryColor : Colors.transparent, width: 3)),
                           child: Image.asset('assets/$avatarId.png', fit: BoxFit.contain),
                         ),
                       );
                     },
                   ),
                 ),
-                
                 const SizedBox(height: 16),
                 TextField(controller: descCtrl, decoration: const InputDecoration(hintText: 'Nova Biografia'), maxLines: 3),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () async {
-                    await Supabase.instance.client.from('profiles').update({
-                      'description': descCtrl.text.trim(),
-                      'avatar_icon': tempAvatar,
-                    }).eq('id', _currentUserId);
-                    
-                    setState(() {
-                      _profileData!['description'] = descCtrl.text.trim();
-                      _profileData!['avatar_icon'] = tempAvatar;
-                    });
+                    await Supabase.instance.client.from('profiles').update({'description': descCtrl.text.trim(), 'avatar_icon': tempAvatar}).eq('id', _currentUserId);
+                    setState(() { _profileData!['description'] = descCtrl.text.trim(); _profileData!['avatar_icon'] = tempAvatar; });
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil atualizado!')));
                   },
@@ -113,7 +118,15 @@ class _ProfilePageState extends State<ProfilePage> {
     final bool isMe = widget.userId == _currentUserId;
 
     return Scaffold(
-      appBar: AppBar(title: Text(_profileData!['username'])),
+      appBar: AppBar(
+        title: Text(_profileData!['username']),
+        actions: !isMe ? [
+          PopupMenuButton<String>(
+            onSelected: (val) { if (val == 'block') _toggleBlock(); },
+            itemBuilder: (context) => [PopupMenuItem(value: 'block', child: Text(_isBlocked ? 'Desbloquear Utilizador' : 'Bloquear Utilizador', style: const TextStyle(color: Colors.red)))],
+          )
+        ] : [],
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -129,17 +142,25 @@ class _ProfilePageState extends State<ProfilePage> {
               Text(_profileData!['username'], style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: const Color(0xFF23232F), borderRadius: BorderRadius.circular(20)),
-                child: Text(_profileData!['description'] ?? 'Sem biografia.', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.white70)),
+              // Caixa da Biografia COM LÁPIS INDICATIVO
+              GestureDetector(
+                onTap: isMe ? _showEditProfileSheet : null,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: const Color(0xFF23232F), borderRadius: BorderRadius.circular(20)),
+                  child: Stack(
+                    children: [
+                      Center(child: Text(_profileData!['description'] ?? 'Sem biografia.', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.white70))),
+                      if (isMe) const Positioned(right: 0, bottom: 0, child: Icon(Icons.edit, color: Colors.white38, size: 18)),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 40),
 
               if (!isMe)
                 SizedBox(width: double.infinity, child: ElevatedButton.icon(icon: const Icon(Icons.chat_bubble_outline), label: const Text('Enviar Mensagem Privada'), onPressed: () => Navigator.of(context).push(PrivateChatPage.route(_profileData!)))),
-              if (isMe)
-                SizedBox(width: double.infinity, child: OutlinedButton.icon(style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), side: BorderSide(color: Theme.of(context).primaryColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25))), icon: Icon(Icons.edit, color: Theme.of(context).primaryColor), label: Text('Editar Perfil', style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 16)), onPressed: _showEditProfileSheet)),
             ],
           ),
         ),
