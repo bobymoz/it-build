@@ -19,12 +19,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // Agora o tema é permanentemente escuro, mas podes alternar se quiseres no futuro
-  ThemeMode _themeMode = ThemeMode.dark;
-
-  void toggleTheme() {
-    setState(() => _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
-  }
+  final ThemeMode _themeMode = ThemeMode.dark;
 
   @override
   Widget build(BuildContext context) {
@@ -33,22 +28,22 @@ class _MyAppState extends State<MyApp> {
       title: 'Redoot',
       themeMode: _themeMode,
       darkTheme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF181820), // Fundo escuro fofo (cinza com toque de roxo)
-        primaryColor: const Color(0xFFB388FF), // Roxo pastel fofo
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFB388FF),
-          surface: Color(0xFF23232F), // Cor dos cartões e formulários
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF181820),
-          elevation: 0,
-          centerTitle: true,
+        scaffoldBackgroundColor: const Color(0xFF181820),
+        primaryColor: const Color(0xFFB388FF),
+        colorScheme: const ColorScheme.dark(primary: Color(0xFFB388FF), surface: Color(0xFF23232F)),
+        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF181820), elevation: 0, centerTitle: true),
+        // AS NOTIFICAÇÕES (SNACKBARS) AGORA SÃO DO APP E NÃO DO CELULAR!
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: const Color(0xFFB388FF),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          contentTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFB388FF),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)), // Botões bem redondinhos
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
