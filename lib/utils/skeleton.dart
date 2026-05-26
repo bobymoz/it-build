@@ -13,13 +13,11 @@ class Skeleton extends StatefulWidget {
 
 class _SkeletonState extends State<Skeleton> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.2, end: 0.6).animate(_controller);
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat();
   }
 
   @override
@@ -30,16 +28,23 @@ class _SkeletonState extends State<Skeleton> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _animation,
-      child: Container(
-        width: widget.width,
-        height: widget.height,
-        decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[300],
-          borderRadius: BorderRadius.circular(widget.borderRadius),
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              stops: [0.0, _controller.value, 1.0],
+              colors: const [Color(0xFF23232F), Color(0xFF333345), Color(0xFF23232F)],
+            ),
+          ),
+        );
+      },
     );
   }
 }
