@@ -18,8 +18,6 @@ class _PrivateChatPageState extends State<PrivateChatPage> {
   @override
   void initState() {
     super.initState();
-    final otherId = widget.otherUser['id'];
-    
     // Escuta as mensagens onde tu és o remetente e ele o destinatário, OU vice-versa
     _messagesStream = Supabase.instance.client
         .from('private_messages')
@@ -86,7 +84,8 @@ class _PrivateChatPageState extends State<PrivateChatPage> {
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 8, maxLines: 1),
+                        // CORREÇÃO: Removido o maxLines que estava a quebrar o código
+                        margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
                           color: isMe ? Theme.of(context).primaryColor : const Color(0xFF23232F),
