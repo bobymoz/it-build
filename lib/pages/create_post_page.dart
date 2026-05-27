@@ -13,16 +13,15 @@ class CreatePostPage extends StatefulWidget {
 class _CreatePostPageState extends State<CreatePostPage> {
   final _titleCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
-  final _imageCtrl = TextEditingController(); // Novo campo de imagem
+  final _imageCtrl = TextEditingController();
+  final _videoCtrl = TextEditingController(); // CAMPO PARA VÍDEO
   bool _isLoading = false;
-  String _previewUrl = '';
+  String _previewImageUrl = '';
 
   @override
   void initState() {
     super.initState();
-    _imageCtrl.addListener(() {
-      setState(() => _previewUrl = _imageCtrl.text.trim());
-    });
+    _imageCtrl.addListener(() => setState(() => _previewImageUrl = _imageCtrl.text.trim()));
   }
 
   Future<void> _publishPost() async {
@@ -34,7 +33,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
         'profile_id': Supabase.instance.client.auth.currentUser!.id,
         'title': _titleCtrl.text.trim(),
         'content': _contentCtrl.text.trim(),
-        'image_url': _imageCtrl.text.trim(), // Salva a imagem no banco
+        'image_url': _imageCtrl.text.trim().isEmpty ? null : _imageCtrl.text.trim(),
+        'video_url': _videoCtrl.text.trim().isEmpty ? null : _videoCtrl.text.trim(),
       });
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -56,15 +56,19 @@ class _CreatePostPageState extends State<CreatePostPage> {
             TextField(controller: _titleCtrl, decoration: const InputDecoration(hintText: 'Título apelativo...'), maxLength: 100),
             const SizedBox(height: 16),
             
-            TextField(controller: _imageCtrl, decoration: const InputDecoration(hintText: 'Link da Imagem (Opcional - Ex: Imgur)')),
-            if (_previewUrl.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(_previewUrl, height: 150, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Text('Imagem Inválida', style: TextStyle(color: Colors.red)))),
+            TextField(controller: _imageCtrl, decoration: const InputDecoration(hintText: 'Link da Imagem (Opcional)')),
+            if (_previewImageUrl.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(_previewImageUrl, height: 150, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Text('Imagem Inválida', style: TextStyle(color: Colors.red)))),
             ],
-            
             const SizedBox(height: 16),
-            TextField(controller: _contentCtrl, maxLines: 5, decoration: const InputDecoration(hintText: 'O que tens em mente? Partilha aqui...')),
+            
+            TextField(controller: _videoCtrl, decoration: const InputDecoration(hintText: 'Link do Vídeo MP4 (Opcional)')),
+            const SizedBox(height: 16),
+            
+            TextField(controller: _contentCtrl, maxLines: 6, decoration: const InputDecoration(hintText: 'O que tens em mente?')),
             const SizedBox(height: 24),
+            
             ElevatedButton(
               onPressed: _isLoading ? null : _publishPost,
               child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Publicar'),
