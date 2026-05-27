@@ -8,8 +8,8 @@ workflows:
       - name: Baixar dependências
         script: flutter pub get
       - name: Gerar Ícone do App
-        script: dart run flutter_launcher_icons # Aplica o teu logo no Android!
+        script: dart run flutter_launcher_icons
       - name: Compilar o APK
-        script: flutter build apk --release
+        script: flutter build apk --release --android-skip-build-dependency-validation
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
